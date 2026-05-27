@@ -1,0 +1,26 @@
+# Зависимости
+node_modules/
+**/node_modules/
+
+# Сборки Next.js
+.next/
+**/.next/
+out/
+**/out/
+
+# База данных (создаётся через prisma db push + seed)
+*.db
+*.db-journal
+
+# Переменные окружения (секреты) — в репозитории только .env.example
+.env
+**/.env
+!**/.env.example
+
+# Прочее
+.DS_Store
+**/.DS_Store
+next-env.d.ts
+**/next-env.d.ts
+*.tsbuildinfo
+**/*.tsbuildinfo

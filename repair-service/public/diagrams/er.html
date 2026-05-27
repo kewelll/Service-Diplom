@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<title>ER-диаграмма базы данных</title>
+<style>
+  html, body { margin: 0; background: #ffffff; }
+  #wrap { display: inline-block; padding: 24px; background: #ffffff; }
+  .mermaid { font-family: Arial, sans-serif; }
+  #status { position: fixed; right: 4px; bottom: 4px; font: 11px monospace; color: #fff; }
+</style>
+</head>
+<body>
+<div id="wrap">
+<pre class="mermaid">
+erDiagram
+  USERS ||--o{ ORDERS : "размещает"
+  USERS ||--o{ ORDERS : "выполняет"
+  CATEGORIES ||--o{ ORDERS : "классифицирует"
+  CATEGORIES ||--o{ SERVICES : "включает"
+  ORDERS ||--o{ ORDER_SERVICES : "содержит"
+  SERVICES ||--o{ ORDER_SERVICES : "входит в"
+  ORDERS ||--o{ ORDER_PARTS : "содержит"
+  PARTS ||--o{ ORDER_PARTS : "входит в"
+  ORDERS ||--o{ STATUS_HISTORY : "имеет"
+  ORDERS ||--o{ COMMENTS : "имеет"
+  USERS ||--o{ COMMENTS : "пишет"
+  ORDERS ||--o| REVIEWS : "получает"
+  USERS ||--o{ REVIEWS : "оставляет"
+  USERS ||--o{ NOTIFICATIONS : "получает"
+
+  USERS {
+    int id PK
+    string fullName
+    string email UK
+    string phone
+    Role role
+  }
+  CATEGORIES {
+    int id PK
+    string name UK
+  }
+  SERVICES {
+    int id PK
+    string name
+    int price
+    int categoryId FK
+  }
+  PARTS {
+    int id PK
+    string name
+    int price
+    int stock
+  }
+  ORDERS {
+    int id PK
+    string number UK
+    int clientId FK
+    int masterId FK
+    int categoryId FK
+    OrderStatus status
+    int totalCost
+  }
+  ORDER_SERVICES {
+    int id PK
+    int orderId FK
+    int serviceId FK
+    int quantity
+    int price
+  }
+  ORDER_PARTS {
+    int id PK
+    int orderId FK
+    int partId FK
+    int quantity
+    int price
+  }
+  STATUS_HISTORY {
+    int id PK
+    int orderId FK
+    OrderStatus status
+    datetime createdAt
+  }
+  COMMENTS {
+    int id PK
+    int orderId FK
+    int authorId FK
+    string text
+  }
+  REVIEWS {
+    int id PK
+    int orderId FK
+    int rating
+  }
+  NOTIFICATIONS {
+    int id PK
+    int userId FK
+    string text
+    bool isRead
+  }
+</pre>
+</div>
+<div id="status">…</div>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0/dist/mermaid-layout-elk.esm.min.mjs";
+  mermaid.registerLayoutLoaders(elkLayouts.default ?? elkLayouts);
+  mermaid.initialize({
+    startOnLoad: true,
+    layout: "elk",
+    theme: "base",
+    themeVariables: {
+      fontFamily: "Arial, sans-serif",
+      fontSize: "14px",
+      primaryColor: "#ffffff",
+      primaryBorderColor: "#000000",
+      primaryTextColor: "#000000",
+      lineColor: "#000000",
+      tertiaryColor: "#ffffff",
+      attributeBackgroundColorOdd: "#ffffff",
+      attributeBackgroundColorEven: "#f2f2f2",
+      nodeBorder: "#000000"
+    }
+  });
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      const svg = document.querySelector(".mermaid svg");
+      document.getElementById("status").textContent = svg ? "DONE" : "FAIL";
+    }, 2500);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<title>Диаграмма вариантов использования</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  html, body { margin: 0; background: #ffffff; }
+  #wrap { display: inline-block; padding: 24px; background: #ffffff; }
+  .mermaid { font-family: Arial, sans-serif; }
+  #status { position: fixed; right: 4px; bottom: 4px; font: 11px monospace; color: #fff; }
+</style>
+</head>
+<body>
+<div id="wrap">
+<pre class="mermaid">
+flowchart LR
+  client(("Клиент"))
+  master(("Мастер"))
+  admin(("Администратор"))
+
+  subgraph S["Система автоматизации сервисного обслуживания"]
+    direction TB
+    u1(["Просмотр каталога услуг и цен"])
+    u2(["Регистрация и вход"])
+    u3(["Создание заявки на ремонт"])
+    u4(["Отслеживание статуса заказа"])
+    u5(["Согласование стоимости"])
+    u6(["Оценка качества (отзыв)"])
+    u7(["Диагностика и заключение"])
+    u8(["Изменение статуса заказа"])
+    u9(["Учёт услуг и запчастей"])
+    u10(["Ведение журнала работ"])
+    u11(["Назначение мастера"])
+    u12(["Управление пользователями"])
+    u13(["Управление справочниками"])
+    u14(["Просмотр статистики"])
+  end
+
+  client --- u1
+  client --- u2
+  client --- u3
+  client --- u4
+  client --- u5
+  client --- u6
+
+  master --- u4
+  master --- u7
+  master --- u8
+  master --- u9
+  master --- u10
+
+  admin --- u8
+  admin --- u11
+  admin --- u12
+  admin --- u13
+  admin --- u14
+</pre>
+</div>
+<div id="status">…</div>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: "base",
+    themeVariables: {
+      fontFamily: "Arial, sans-serif",
+      fontSize: "15px",
+      primaryColor: "#ffffff",
+      primaryBorderColor: "#000000",
+      primaryTextColor: "#000000",
+      lineColor: "#000000",
+      secondaryColor: "#ffffff",
+      tertiaryColor: "#ffffff",
+      titleColor: "#000000",
+      nodeBorder: "#000000",
+      clusterBkg: "#ffffff",
+      clusterBorder: "#000000",
+      edgeLabelBackground: "#ffffff"
+    },
+    flowchart: { curve: "basis", nodeSpacing: 30, rankSpacing: 70 }
+  });
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      const svg = document.querySelector(".mermaid svg");
+      document.getElementById("status").textContent = svg ? "DONE" : "FAIL";
+    }, 1800);
+  });
+</script>
+</body>
+</html>

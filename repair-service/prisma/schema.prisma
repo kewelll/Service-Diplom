@@ -1,0 +1,210 @@
+// Схема базы данных системы автоматизации сервисного обслуживания
+// ремонтной компании (ремонт компьютеров и оргтехники).
+// СУБД — SQLite, доступ через Prisma ORM (драйвер better-sqlite3).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Роль пользователя в системе (ролевая модель доступа, RBAC).
+enum Role {
+  ADMIN // администратор
+  MASTER // мастер (инженер)
+  CLIENT // клиент (заказчик)
+}
+
+// Статус заказа на ремонт (жизненный цикл заявки).
+enum OrderStatus {
+  NEW // новая заявка
+  DIAGNOSTICS // диагностика
+  APPROVAL // согласование стоимости с клиентом
+  IN_PROGRESS // в работе (ремонт)
+  READY // готов к выдаче
+  ISSUED // выдан клиенту (закрыт)
+  CANCELED // отменён / отказ
+}
+
+// Пользователь системы.
+model User {
+  id           Int      @id @default(autoincrement())
+  fullName     String
+  email        String   @unique
+  phone        String?
+  passwordHash String
+  role         Role     @default(CLIENT)
+  createdAt    DateTime @default(now())
+
+  clientOrders  Order[]         @relation("ClientOrders")
+  masterOrders  Order[]         @relation("MasterOrders")
+  comments      Comment[]
+  reviews       Review[]
+  notifications Notification[]
+  statusChanges StatusHistory[]
+
+  @@map("users")
+}
+
+// Категория обслуживаемой техники (ноутбуки, ПК, принтеры и т.д.).
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  services    Service[]
+  orders      Order[]
+
+  @@map("categories")
+}
+
+// Услуга из прайс-листа сервисного центра.
+model Service {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  price       Int // стоимость, руб.
+  durationH   Int       @default(1) // ориентировочная длительность, ч
+  isActive    Boolean   @default(true)
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId  Int?
+
+  orderItems OrderService[]
+
+  @@map("services")
+}
+
+// Запчасть / комплектующее на складе.
+model Part {
+  id    Int    @id @default(autoincrement())
+  name  String
+  sku   String? // артикул
+  price Int // цена за единицу, руб.
+  stock Int    @default(0) // остаток на складе
+
+  orderItems OrderPart[]
+
+  @@map("parts")
+}
+
+// Заказ (заявка) на ремонт — центральная сущность предметной области.
+model Order {
+  id        Int    @id @default(autoincrement())
+  number    String @unique // человекочитаемый номер, напр. 2026-000042
+
+  client   User @relation("ClientOrders", fields: [clientId], references: [id], onDelete: Cascade)
+  clientId Int
+
+  master   User? @relation("MasterOrders", fields: [masterId], references: [id], onDelete: SetNull)
+  masterId Int?
+
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId Int?
+
+  deviceType   String // тип устройства (ноутбук, ПК, принтер...)
+  deviceBrand  String? // производитель
+  deviceModel  String? // модель
+  serialNumber String? // серийный номер
+
+  problem   String // описание неисправности со слов клиента
+  diagnosis String? // заключение мастера по результатам диагностики
+
+  status        OrderStatus @default(NEW)
+  estimatedCost Int? // предварительная оценка стоимости, руб.
+  totalCost     Int         @default(0) // итоговая стоимость (услуги + запчасти)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deadline  DateTime? // плановая дата готовности
+  closedAt  DateTime? // дата выдачи / закрытия
+
+  services OrderService[]
+  parts    OrderPart[]
+  comments Comment[]
+  history  StatusHistory[]
+  review   Review?
+
+  @@map("orders")
+}
+
+// Услуга, включённая в конкретный заказ (с фиксацией цены на момент оказания).
+model OrderService {
+  id        Int     @id @default(autoincrement())
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   Int
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  serviceId Int
+  quantity  Int     @default(1)
+  price     Int // цена за единицу на момент добавления, руб.
+
+  @@map("order_services")
+}
+
+// Запчасть, использованная в конкретном заказе.
+model OrderPart {
+  id       Int   @id @default(autoincrement())
+  order    Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId  Int
+  part     Part  @relation(fields: [partId], references: [id], onDelete: Restrict)
+  partId   Int
+  quantity Int   @default(1)
+  price    Int // цена за единицу на момент добавления, руб.
+
+  @@map("order_parts")
+}
+
+// История изменения статусов заказа (журнал движения заявки).
+model StatusHistory {
+  id          Int         @id @default(autoincrement())
+  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     Int
+  status      OrderStatus
+  changedBy   User?       @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  changedById Int?
+  comment     String?
+  createdAt   DateTime    @default(now())
+
+  @@map("status_history")
+}
+
+// Комментарий / запись в журнале работ по заказу.
+model Comment {
+  id         Int      @id @default(autoincrement())
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId    Int
+  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId   Int
+  text       String
+  isInternal Boolean  @default(false) // служебный комментарий (не виден клиенту)
+  createdAt  DateTime @default(now())
+
+  @@map("comments")
+}
+
+// Отзыв клиента о выполненном заказе.
+model Review {
+  id        Int      @id @default(autoincrement())
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   Int      @unique
+  client    User     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId  Int
+  rating    Int // оценка 1..5
+  text      String?
+  createdAt DateTime @default(now())
+
+  @@map("reviews")
+}
+
+// Уведомление пользователю о событии (смена статуса, новый отзыв и т.п.).
+model Notification {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  text      String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}

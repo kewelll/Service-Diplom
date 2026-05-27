@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<title>Архитектура приложения</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  html, body { margin: 0; background: #ffffff; }
+  #wrap { display: inline-block; padding: 24px; background: #ffffff; }
+  .mermaid { font-family: Arial, sans-serif; }
+  #status { position: fixed; right: 4px; bottom: 4px; font: 11px monospace; color: #fff; }
+</style>
+</head>
+<body>
+<div id="wrap">
+<pre class="mermaid">
+flowchart TB
+  subgraph CLIENT["Клиентская часть (веб-браузер)"]
+    browser["Интерфейс пользователя:<br/>React-компоненты, HTML, CSS"]
+  end
+
+  subgraph SERVER["Сервер приложения — Next.js (App Router)"]
+    direction TB
+    routing["Маршрутизация по файловой системе"]
+    rsc["Серверные компоненты<br/>(формирование HTML-страниц)"]
+    actions["Серверные действия<br/>(обработка форм и операций с данными)"]
+    auth["Контроль доступа:<br/>сессии и роли (RBAC)"]
+  end
+
+  orm["Prisma ORM<br/>(модели данных, запросы, миграции)"]
+  db[("СУБД SQLite<br/>(файл базы данных dev.db)")]
+
+  browser -- "HTTP / HTTPS-запрос" --> routing
+  routing --> rsc
+  routing --> actions
+  rsc --> auth
+  actions --> auth
+  auth --> orm
+  orm -- "SQL" --> db
+  rsc -- "HTML-страница" --> browser
+
+  classDef layer fill:#ffffff,stroke:#000000,stroke-width:1.5px,color:#000000;
+  classDef store fill:#f0f0f0,stroke:#000000,stroke-width:1.5px,color:#000000;
+  class browser,routing,rsc,actions,auth,orm layer;
+  class db store;
+</pre>
+</div>
+<div id="status">…</div>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: "base",
+    themeVariables: {
+      fontFamily: "Arial, sans-serif",
+      fontSize: "15px",
+      primaryColor: "#ffffff",
+      primaryBorderColor: "#000000",
+      primaryTextColor: "#000000",
+      lineColor: "#000000",
+      clusterBkg: "#ffffff",
+      clusterBorder: "#000000",
+      titleColor: "#000000",
+      edgeLabelBackground: "#ffffff"
+    },
+    flowchart: { curve: "step", nodeSpacing: 45, rankSpacing: 60 }
+  });
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      const svg = document.querySelector(".mermaid svg");
+      document.getElementById("status").textContent = svg ? "DONE" : "FAIL";
+    }, 1800);
+  });
+</script>
+</body>
+</html>
